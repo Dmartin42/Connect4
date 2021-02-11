@@ -1,4 +1,4 @@
 # Connect4
-Connect4 game
-written entirely in python
+My take on the classic game of Connect Four. 
+Written entirely in Python
 
