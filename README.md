@@ -1,3 +1,4 @@
 # Connect4
 Connect4 game
-Written entirely in python
+written entirely in python
+
