@@ -1,11 +1,62 @@
+
+from turtle import screensize
 import pyglet
 from typing import List,Tuple
 
 from pyglet.libs.win32.constants import NTM_BOLD
-from player import piece as piece
 
+
+NUM_ROWS: int = 6
+NUM_COLS: int = 7
+
+
+#-------------------------------------------------#-------------------------------------------------#
+#-------------------------------------------------#-------------------------------------------------#
+#-------------------------------------------------#-------------------------------------------------#
+#-------------------------------------------------#-------------------------------------------------#
+class piece():
+    GRAVITY = 9.81*3
+    def __init__(self, y: float, row: int, col: int, width: int, color: str, x: float = 0.0):
+        self.x = x
+        self.y = y
+        self.row = row
+        self.col = col
+        self.width = width
+        if color[0].lower() == 'y':
+            #yellow
+            self.color = (184,186,56)
+        else:
+            #red
+            self.color = (240,20,20)
+
+    def set_row(self, row: int):
+        self.row = row
+    
+    def set_col(self, col: int):
+        self.col = col
+
+    def get_row(self) -> int:
+        return self.row
+    
+    def get_col(self) -> int:
+        return self.col
+    
+    def get_color(self):
+        return 'y' if self.color == (184,186,56) else 'r'
+    
+    def draw(self, x: int, y: int) -> None:
+            pyglet.shapes.Circle(x=x, y=y, radius=self.width, color=self.color).draw()
+
+
+
+
+
+#-------------------------------------------------#-------------------------------------------------#
+#-------------------------------------------------#-------------------------------------------------#
+#-------------------------------------------------#-------------------------------------------------#
+#-------------------------------------------------#-------------------------------------------------#
 class Board():
-    MARGIN = 10
+    MARGIN = 100
     GAME_COLORS: dict = {"white fade": (218, 219, 215),
                     "purple fade": (84,74,83),
                     "light blue" : (146,148,214), 
@@ -28,7 +79,7 @@ class Board():
 
     def get_first_player(self) -> str:
         import random
-        return "red" if random.choice(["red","yellow"]) == 'red' else "yellow"
+        return random.choice(["red","yellow"])
 
     def get_screen_size(self):
         return self.screen_size
@@ -38,10 +89,10 @@ class Board():
         self.screen_size[1] = screen_size[1]
 
     def get_cell_width(self):
-        return (self.get_screen_size()[0] - (Board.MARGIN*2))/self.cols
+        return ((self.get_screen_size()[0]) - (Board.MARGIN*2))/(self.cols)
 
     def get_cell_height(self):
-        return (self.get_screen_size()[1] - (Board.MARGIN*2))/self.rows
+        return (self.get_screen_size()[1] - (Board.MARGIN*2))/(self.rows)
     
     def get_board(self) -> List[List[str]]:
         the_board: List[List[str]] = [[" "] * self.cols for _ in range(self.rows)]
@@ -63,13 +114,13 @@ class Board():
             x = MARGIN + (i * WIDTH)
             y = MARGIN
             x2 = MARGIN + (i * WIDTH)
-            y2 = SCREEN_SIZE[1] - (MARGIN)
+            y2 = (SCREEN_SIZE[1]) - (MARGIN)
             #Vertical Lines
             pyglet.shapes.Line(x,y,x2,y2,width=4,color=Board.GAME_COLORS["light blue"]).draw()
         for j in range(self.rows+1):
             x = MARGIN
             y = MARGIN + (j * HEIGHT)
-            x2 = SCREEN_SIZE[0] - (MARGIN)
+            x2 = (SCREEN_SIZE[0]) - (MARGIN)
             y2 = MARGIN + (j * HEIGHT)
             #Horizontal Lines
             pyglet.shapes.Line(x,y,x2,y2,width=4,color=Board.GAME_COLORS["light green"]).draw()
@@ -118,7 +169,8 @@ class Board():
             WIDTH = self.get_cell_width()
             HEIGHT = self.get_cell_height()
             RADIUS = WIDTH/2
-            x = MARGIN+(col*WIDTH)+WIDTH/2
+            # x = (MARGIN/2)+(col*WIDTH)+WIDTH/col
+            x = MARGIN + (self.get_cell_width() * self.cols) + WIDTH/2
             y = MARGIN+(row*HEIGHT)+HEIGHT/2
             pyglet.shapes.Circle(x,y,RADIUS,color=color).draw()
     
@@ -197,6 +249,13 @@ class Board():
                     return [(row,col),cell]
         return None
 
+
+
+
+
+
+
+
 #-------------------------------------------------#-------------------------------------------------#
 #-------------------------------------------------#-------------------------------------------------#
 #-------------------------------------------------#-------------------------------------------------#
@@ -206,13 +265,19 @@ class MyWindow(pyglet.window.Window):
     from pyglet.window import mouse
     def __init__(self,*args,**kwargs):
         super(MyWindow,self).__init__(*args,**kwargs)
-        self.set_minimum_size(700,700)
+        self.set_minimum_size(800,800)
         #background color
         backgroundColor = [84,74,83,255]
         backgroundColor = [i /255 for i in backgroundColor]
         pyglet.gl.glClearColor(*backgroundColor)
-        self.board = Board(numRows=6,numCols=7) #6,7
-        self.label = pyglet.text.Label(text="Shift + Esc to exit | c to clear", x = 700, y=15)
+        self.board = Board(numRows=NUM_ROWS,numCols=NUM_COLS) #6,7
+        MARGIN = Board.MARGIN
+        cellWidth = self.board.get_cell_width()
+        cellHeight = self.board.get_cell_height()
+        boardWidth = self.board.get_cell_width() * self.board.cols
+        boardHeight = self.board.get_cell_height() * self.board.rows
+        self.label = pyglet.text.Label(text="SHIFT + ESC fullscreen | C clear | ESC exit", x = self.board.get_screen_size()[0]/NUM_COLS, y=(self.board.get_screen_size()[1]-2*MARGIN)/NUM_ROWS)
+        
         self.board.set_screen_size(self.get_viewport_size())
         self.highlightedCell: Tuple[int,int] = (0,0)
         self.board.activePiece = self.board.blankPiece
@@ -227,17 +292,18 @@ class MyWindow(pyglet.window.Window):
     def on_key_press(self, symbol, modifiers):
         if symbol == self.key.ESCAPE:
             if modifiers & self.key.MOD_SHIFT:
-                try:
-                    pyglet.app.exit()
-                    exit(0)
-                except:
-                    pass
-            else:
                 fullscreen = self._fullscreen
                 if fullscreen:
                     self.set_fullscreen(fullscreen=False)
                 else:
                     self.set_fullscreen(fullscreen=True)
+            else:
+                try:
+                    pyglet.app.exit()
+                    exit(0)
+                except:
+                    pass
+                
         if symbol == self.key.C:
             self.board.pieces.clear()
             self.board.activePiece = self.board.blankPiece
@@ -251,8 +317,7 @@ class MyWindow(pyglet.window.Window):
         elif cell is None:
             self.highlightedCell = ()
 
-    def on_mouse_press(self, x, y, button, modifiers):
-        from player import piece as piece 
+    def on_mouse_press(self, x, y, button, modifiers): 
         if (self.board.activePiece != self.board.blankPiece) or self.board.is_winner:
             return
         if button == self.mouse.LEFT:
@@ -261,14 +326,14 @@ class MyWindow(pyglet.window.Window):
                 clickedCol = cell[1]
                 endRow = 0
                 if self.board.pieces:
-                    smallestRow = 0
+                    destinationRow = 0
                     for each_piece in self.board.pieces:
                         if each_piece.row == self.board.rows-1 and each_piece.col == clickedCol:
                             return
-                        if each_piece.col == clickedCol and  each_piece.row >= smallestRow:
+                        if each_piece.col == clickedCol and  each_piece.row >= destinationRow:
                             #the bottom row + 1
-                            smallestRow = each_piece.row + 1
-                    endRow = smallestRow
+                            destinationRow = each_piece.row + 1
+                    endRow = destinationRow
                 cellWidth = self.board.get_cell_width()
                 cellHeight = self.board.get_cell_height()
                 pieceWidth = self.board.get_cell_width()/2 - 4
@@ -308,6 +373,7 @@ class MyWindow(pyglet.window.Window):
             self.board.draw_winner(self.board.get_winner_positions(piece))
         if self.board.activePiece != self.board.blankPiece:
             self.board.apply_gravity(self.board.activePiece)
+        print(pyglet.clock.get_fps())
 
     def highlight_cell(self, cell: Tuple[int,int]) -> None:
         row = cell[0]
@@ -329,10 +395,10 @@ class MyWindow(pyglet.window.Window):
     def update(self, dt):
         pass
 
-frameRate = 30
+frameRate = 120
 
 if __name__ == "__main__":
-    window = MyWindow(700,700,"connect 4",1/frameRate)
-    window.set_fullscreen(fullscreen=True)
+    window = MyWindow(800,800,"connect 4",1/frameRate)
+    window.set_fullscreen(fullscreen=False)
     pyglet.clock.schedule_interval(window.update,1/frameRate)
     pyglet.app.run()
