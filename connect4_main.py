@@ -5,6 +5,7 @@ from typing import List,Tuple
 
 from pyglet.libs.win32.constants import NTM_BOLD
 
+DEBUG: bool = True
 
 NUM_ROWS: int = 6
 NUM_COLS: int = 7
@@ -74,7 +75,7 @@ class Board():
         self.pieces: List['piece'] = []
         self.turn = self.get_first_player()
         self.is_winner = False
-        
+
         print(f"The {self.turn} player goes first!")
 
     def get_first_player(self) -> str:
@@ -124,6 +125,7 @@ class Board():
             y2 = MARGIN + (j * HEIGHT)
             #Horizontal Lines
             pyglet.shapes.Line(x,y,x2,y2,width=4,color=Board.GAME_COLORS["light green"]).draw()
+
     def draw_piece(self, piece):
         piece.draw(x=piece.x, y=piece.y)
 
@@ -278,6 +280,7 @@ class MyWindow(pyglet.window.Window):
         boardHeight = self.board.get_cell_height() * self.board.rows
         self.label = pyglet.text.Label(text="SHIFT + ESC fullscreen | C clear | ESC exit", x = self.board.get_screen_size()[0]/NUM_COLS, y=(self.board.get_screen_size()[1]-2*MARGIN)/NUM_ROWS)
         
+        
         self.board.set_screen_size(self.get_viewport_size())
         self.highlightedCell: Tuple[int,int] = (0,0)
         self.board.activePiece = self.board.blankPiece
@@ -357,23 +360,7 @@ class MyWindow(pyglet.window.Window):
             return (row,col)
         return None
 
-    def on_draw(self):
-        self.clear()
-        self.board.draw()
-        self.label.draw()
-        self.main()
         
-    def main(self):
-        self.board.draw_player_turn_icon()
-        if self.highlightedCell:
-            self.highlight_cell(self.highlightedCell)
-        for piece in self.board.pieces:
-            self.board.draw_piece(piece)
-            #check if winner
-            self.board.draw_winner(self.board.get_winner_positions(piece))
-        if self.board.activePiece != self.board.blankPiece:
-            self.board.apply_gravity(self.board.activePiece)
-        print(pyglet.clock.get_fps())
 
     def highlight_cell(self, cell: Tuple[int,int]) -> None:
         row = cell[0]
@@ -387,7 +374,28 @@ class MyWindow(pyglet.window.Window):
         rect.opacity = 50
         rect.draw()
 
-    
+    def on_draw(self):
+        self.clear()
+        self.board.draw()
+        self.label.draw()
+        if DEBUG:
+            fallingPieceString = "Falling Piece" if self.board.activePiece != self.board.blankPiece else ""
+            pyglet.text.Label(text="DEBUG MODE | FPS: " + str(int(pyglet.clock.get_fps())) + fallingPieceString, x=0,y=0).draw()
+        self.main()
+        
+    def main(self):
+        self.board.draw_player_turn_icon()
+        if self.highlightedCell:
+            self.highlight_cell(self.highlightedCell)
+        for piece in self.board.pieces:
+            self.board.draw_piece(piece)
+            if len(self.board.pieces) > 6: 
+                #Check if winner only when there are more than 6 pieces on the board
+                self.board.draw_winner(self.board.get_winner_positions(piece))
+        if self.board.activePiece != self.board.blankPiece:
+            self.board.apply_gravity(self.board.activePiece)
+            
+            
     
                         
 
@@ -399,6 +407,7 @@ frameRate = 120
 
 if __name__ == "__main__":
     window = MyWindow(800,800,"connect 4",1/frameRate)
+    print(pyglet.__file__)
     window.set_fullscreen(fullscreen=False)
     pyglet.clock.schedule_interval(window.update,1/frameRate)
     pyglet.app.run()
